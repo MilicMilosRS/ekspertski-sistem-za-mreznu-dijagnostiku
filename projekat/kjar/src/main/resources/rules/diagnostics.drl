@@ -1,0 +1,107 @@
+package rules;
+
+import com.ftn.sbnz.sv10.model.models.NetworkProblem;
+import com.ftn.sbnz.sv10.model.models.NetworkTest;
+import com.ftn.sbnz.sv10.model.models.NetworkAlert;
+import com.ftn.sbnz.sv10.model.models.Hypothesis;
+import com.ftn.sbnz.sv10.model.models.Solution;
+import com.ftn.sbnz.sv10.model.models.Resolution;
+import com.ftn.sbnz.sv10.model.models.Symptom;
+import com.ftn.sbnz.sv10.model.models.DeviceType;
+import com.ftn.sbnz.sv10.model.models.ConnectionType;
+import com.ftn.sbnz.sv10.model.models.PingTest;
+import com.ftn.sbnz.sv10.model.models.AlertType;
+
+//Nivo 1
+
+rule "L1: nema interneta a lokalna mreza i gateway rade"
+    salience 100
+when
+    NetworkProblem(symptom == Symptom.NO_INTERNET)
+    NetworkTest(name == "local_network_works", success == true)
+    NetworkTest(name == "gateway_ping", success == true)
+then
+    Hypothesis h = new Hypothesis("dns_or_isp_problem");
+    insert(h);
+    System.out.println("[L1] " + h);
+end
+
+rule "L1: nema konekcije na laptopu preko WiFi-a"
+    salience 100
+when
+    NetworkProblem(
+        symptom == Symptom.NO_CONNECTION,
+        deviceType == DeviceType.LAPTOP,
+        connectionType == ConnectionType.WIFI
+    )
+then
+    Hypothesis h = new Hypothesis("wifi_adapter_problem");
+    insert(h);
+    System.out.println("[L1] " + h);
+end
+
+//Nivo 2
+
+rule "L2: DNS server nedostupan - gateway radi ali DNS spor"
+    salience 90
+when
+    Hypothesis(name == "dns_or_isp_problem")
+    NetworkTest(name == "gateway_ping", success == true)
+    NetworkAlert(type == AlertType.DNS_SLOW)
+then
+    Hypothesis refined = new Hypothesis("dns_server_unreachable");
+    Solution sol = new Solution("Promeni DNS server na 8.8.8.8 ili 1.1.1.1", 1);
+    insert(refined);
+    insert(sol);
+    System.out.println("[L2] " + refined);
+    System.out.println("[L2] " + sol);
+end
+
+//Nivo 3
+
+rule "L3: visok packet loss + latencija + gateway OK = problem kod ISP-a"
+    salience 80
+when
+    NetworkAlert(type == AlertType.PACKET_LOSS_HIGH)
+    NetworkAlert(type == AlertType.LATENCY_HIGH)
+    NetworkTest(name == "gateway_ping", success == true)
+then
+    Resolution r = new Resolution(
+        "Lokalna mreza radi (gateway OK), packet loss i latencija visoki - problem je kod ISP-a",
+        true
+    );
+    insert(r);
+    System.out.println("[L3] " + r);
+end
+
+rule "Accumulate: visok prosečan packet loss preko svih targeta"
+    salience 70
+when
+    $avgLoss : Number(doubleValue > 0.15) from accumulate(
+        $p : PingTest(attempts > 0),
+        average($p.getLossRate())
+    )
+then
+    Hypothesis h = new Hypothesis("widespread_packet_loss");
+    Solution sol = new Solution(
+        String.format("Prosecan packet loss %.0f%% preko svih targeta - proveri ISP konekciju",
+            $avgLoss.doubleValue() * 100),
+        1
+    );
+    insert(h);
+    insert(sol);
+    System.out.println("[ACC] " + h);
+    System.out.println("[ACC] " + sol);
+end
+
+
+rule "L3-neg: izolovan DNS problem - probaj flush cache pre menjanja DNS-a"
+    salience 60
+when
+    Hypothesis(name == "dns_server_unreachable")
+    not NetworkAlert(type == AlertType.PACKET_LOSS_CRITICAL)
+then
+    Solution sol = new Solution("ipconfig /flushdns (jeftin korak pre menjanja DNS servera)", 0);
+    insert(sol);
+    System.out.println("[L3-neg] " + sol);
+end
