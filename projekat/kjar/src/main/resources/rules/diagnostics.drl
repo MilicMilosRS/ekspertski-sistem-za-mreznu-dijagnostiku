@@ -11,8 +11,11 @@ import com.ftn.sbnz.sv10.model.models.DeviceType;
 import com.ftn.sbnz.sv10.model.models.ConnectionType;
 import com.ftn.sbnz.sv10.model.models.PingTest;
 import com.ftn.sbnz.sv10.model.models.AlertType;
+import com.ftn.sbnz.sv10.model.models.SkipFurtherTesting;
 
-//Nivo 1
+// ============================================================
+// NIVO 1 - POCETNE HIPOTEZE (samo iz simptoma korisnika)
+// ============================================================
 
 rule "L1: nema interneta a lokalna mreza i gateway rade"
     salience 100
@@ -40,7 +43,74 @@ then
     System.out.println("[L1] " + h);
 end
 
-//Nivo 2
+rule "L1: nema konekcije na desktopu preko Etherneta"
+    salience 100
+when
+    NetworkProblem(
+        symptom == Symptom.NO_CONNECTION,
+        deviceType == DeviceType.DESKTOP,
+        connectionType == ConnectionType.ETHERNET
+    )
+then
+    Hypothesis h = new Hypothesis("physical_or_ethernet_problem");
+    insert(h);
+    System.out.println("[L1] " + h);
+end
+
+rule "L1: nema konekcije preko VPN-a"
+    salience 100
+when
+    NetworkProblem(symptom == Symptom.NO_CONNECTION, connectionType == ConnectionType.VPN)
+then
+    Hypothesis h = new Hypothesis("vpn_authentication_or_protocol");
+    insert(h);
+    System.out.println("[L1] " + h);
+end
+
+rule "L1: spora brzina uz postojecu konekciju"
+    salience 100
+when
+    NetworkProblem(symptom == Symptom.SLOW_SPEED)
+then
+    Hypothesis h = new Hypothesis("bandwidth_or_routing_problem");
+    insert(h);
+    System.out.println("[L1] " + h);
+end
+
+rule "L1: cest disconnect na WiFi-u"
+    salience 100
+when
+    NetworkProblem(symptom == Symptom.FREQUENT_DISCONNECT, connectionType == ConnectionType.WIFI)
+then
+    Hypothesis h = new Hypothesis("wifi_interference_or_driver");
+    insert(h);
+    System.out.println("[L1] " + h);
+end
+
+rule "L1: nema pristupa delu mreze"
+    salience 100
+when
+    NetworkProblem(symptom == Symptom.NO_PART_ACCESS)
+then
+    Hypothesis h = new Hypothesis("firewall_or_routing_restriction");
+    insert(h);
+    System.out.println("[L1] " + h);
+end
+
+rule "L1: nema interneta a lokalna mreza ne radi"
+    salience 100
+when
+    NetworkProblem(symptom == Symptom.NO_INTERNET)
+    NetworkTest(name == "local_network_works", success == false)
+then
+    Hypothesis h = new Hypothesis("ip_configuration_problem");
+    insert(h);
+    System.out.println("[L1] " + h);
+end
+
+// ============================================================
+// NIVO 2 - PRECIZIRANJE HIPOTEZE (hipoteza + testovi + alarmi)
+// ============================================================
 
 rule "L2: DNS server nedostupan - gateway radi ali DNS spor"
     salience 90
@@ -57,7 +127,159 @@ then
     System.out.println("[L2] " + sol);
 end
 
-//Nivo 3
+rule "L2: WiFi adapter onemogucen - lokalni loop radi ali adapter nevidljiv"
+    salience 90
+when
+    Hypothesis(name == "wifi_adapter_problem")
+    NetworkTest(name == "local_loop_test", success == true)
+    NetworkTest(name == "adapter_visible", success == false)
+then
+    Hypothesis refined = new Hypothesis("wifi_adapter_disabled");
+    Solution sol = new Solution("Ukljuci WiFi adapter u Settings", 1);
+    insert(refined);
+    insert(sol);
+    System.out.println("[L2] " + refined);
+    System.out.println("[L2] " + sol);
+end
+
+rule "L2: WiFi driver problem - adapter vidljiv ali Device Manager greska"
+    salience 90
+when
+    Hypothesis(name == "wifi_adapter_problem")
+    NetworkTest(name == "adapter_visible", success == true)
+    NetworkTest(name == "device_manager_error", success == true)
+then
+    Hypothesis refined = new Hypothesis("wifi_driver_problem");
+    Solution sol = new Solution("Azuriraj ili reinstaliraj WiFi driver", 2);
+    insert(refined);
+    insert(sol);
+    System.out.println("[L2] " + refined);
+    System.out.println("[L2] " + sol);
+end
+
+rule "L2: mrezna kartica ne radi - lokalni loop ne prolazi"
+    salience 90
+when
+    Hypothesis(name == "physical_or_ethernet_problem")
+    NetworkTest(name == "local_loop_test", success == false)
+then
+    Hypothesis refined = new Hypothesis("network_card_malfunction");
+    Solution sol = new Solution("Proveri mreznu karticu u Device Manageru", 1);
+    insert(refined);
+    insert(sol);
+    System.out.println("[L2] " + refined);
+    System.out.println("[L2] " + sol);
+end
+
+rule "L2: Ethernet kabl iskljucen - loop radi ali gateway ne"
+    salience 90
+when
+    Hypothesis(name == "physical_or_ethernet_problem")
+    NetworkTest(name == "local_loop_test", success == true)
+    NetworkTest(name == "gateway_ping", success == false)
+then
+    Hypothesis refined = new Hypothesis("ethernet_cable_disconnected");
+    Solution sol = new Solution("Proveri i ponovo povezi Ethernet kabl", 1);
+    insert(refined);
+    insert(sol);
+    System.out.println("[L2] " + refined);
+    System.out.println("[L2] " + sol);
+end
+
+rule "L2: DHCP ne dodeljuje IP"
+    salience 90
+when
+    Hypothesis(name == "dns_or_isp_problem")
+    NetworkAlert(type == AlertType.DHCP_FAILED)
+then
+    Hypothesis refined = new Hypothesis("dhcp_not_assigning_ip");
+    Solution sol = new Solution("Pokreni: ipconfig /release && ipconfig /renew", 1);
+    insert(refined);
+    insert(sol);
+    System.out.println("[L2] " + refined);
+    System.out.println("[L2] " + sol);
+end
+
+rule "L2: firewall blokira port"
+    salience 90
+when
+    Hypothesis(name == "firewall_or_routing_restriction")
+    NetworkTest(name == "specific_port_unreachable", success == true)
+    NetworkTest(name == "other_ports_work", success == true)
+then
+    Hypothesis refined = new Hypothesis("firewall_blocking_port");
+    Solution sol = new Solution("Dodaj firewall pravilo za odredjeni port", 2);
+    insert(refined);
+    insert(sol);
+    System.out.println("[L2] " + refined);
+    System.out.println("[L2] " + sol);
+end
+
+rule "L2: gateway lose konfigurisan - loop radi ali gateway ping ne"
+    salience 90
+when
+    Hypothesis(name == "ip_configuration_problem")
+    NetworkTest(name == "local_loop_test", success == true)
+    NetworkTest(name == "gateway_ping", success == false)
+then
+    Hypothesis refined = new Hypothesis("gateway_misconfigured");
+    Solution sol = new Solution("Proveri konfiguraciju default gateway-a", 1);
+    insert(refined);
+    insert(sol);
+    System.out.println("[L2] " + refined);
+    System.out.println("[L2] " + sol);
+end
+
+rule "L2: ISP bandwidth limit - packet loss warning + bandwidth saturated"
+    salience 90
+when
+    Hypothesis(name == "bandwidth_or_routing_problem")
+    NetworkAlert(type == AlertType.PACKET_LOSS_WARNING)
+    NetworkAlert(type == AlertType.BANDWIDTH_SATURATED)
+then
+    Hypothesis refined = new Hypothesis("isp_bandwidth_limitation");
+    Solution sol = new Solution("Kontaktiraj ISP ili nadogradi paket", 2);
+    insert(refined);
+    insert(sol);
+    System.out.println("[L2] " + refined);
+    System.out.println("[L2] " + sol);
+end
+
+rule "L2: ISP outage - kriticni packet loss i drugi servisi nedostupni"
+    salience 90
+when
+    Hypothesis(name == "dns_or_isp_problem")
+    NetworkAlert(type == AlertType.PACKET_LOSS_CRITICAL)
+    NetworkTest(name == "other_services_unreachable", success == true)
+then
+    Hypothesis refined = new Hypothesis("isp_outage");
+    Solution sol = new Solution("Sacekaj ISP ili koristi mobilni hotspot", 1);
+    insert(refined);
+    insert(sol);
+    System.out.println("[L2] " + refined);
+    System.out.println("[L2] " + sol);
+end
+
+rule "L2: nestabilna WiFi konekcija - 3+ neuspesnih pingova"
+    salience 90
+when
+    Hypothesis(name == "wifi_interference_or_driver")
+    $count : Number(intValue >= 3) from accumulate(
+        $p : PingTest(attempts > 0, successful == 0),
+        count($p)
+    )
+then
+    Hypothesis refined = new Hypothesis("unstable_wifi_connection");
+    Solution sol = new Solution("Promeni WiFi kanal ili azuriraj driver", 2);
+    insert(refined);
+    insert(sol);
+    System.out.println("[L2] " + refined + " (neuspesnih pingova: " + $count + ")");
+    System.out.println("[L2] " + sol);
+end
+
+// ============================================================
+// NIVO 3 - EKSPERTSKA KONFLIKT-REZOLUCIJA
+// ============================================================
 
 rule "L3: visok packet loss + latencija + gateway OK = problem kod ISP-a"
     salience 80
@@ -74,7 +296,179 @@ then
     System.out.println("[L3] " + r);
 end
 
-rule "Accumulate: visok prosečan packet loss preko svih targeta"
+rule "L3: potpuni kvar mreze - DHCP, packet loss i latencija kriticni"
+    salience 85
+when
+    NetworkAlert(type == AlertType.PACKET_LOSS_CRITICAL)
+    NetworkAlert(type == AlertType.LATENCY_CRITICAL)
+    NetworkAlert(type == AlertType.DHCP_FAILED)
+then
+    Resolution r = new Resolution(
+        "Potpuni kvar mreze - DHCP, packet loss i latencija svi u kriticnom stanju - hitna eskalacija",
+        true
+    );
+    insert(r);
+    System.out.println("[L3] " + r);
+end
+
+rule "L3: eliminacija nemoguce hipoteze - kartica radi ako loop prolazi"
+    salience 95
+when
+    $h : Hypothesis(name == "network_card_malfunction")
+    NetworkTest(name == "local_loop_test", success == true)
+then
+    retract($h);
+    System.out.println("[L3] Eliminisana hipoteza network_card_malfunction (loop prolazi)");
+end
+
+rule "L3: izolovan DNS problem bez packet loss-a - prvo flush cache"
+    salience 80
+when
+    NetworkAlert(type == AlertType.DNS_SLOW)
+    not NetworkAlert(type == AlertType.PACKET_LOSS_HIGH)
+    not NetworkAlert(type == AlertType.PACKET_LOSS_CRITICAL)
+    NetworkTest(name == "gateway_ping", success == true)
+then
+    Resolution r = new Resolution(
+        "Izolovan DNS problem bez drugih simptoma - probaj prvo ipconfig /flushdns",
+        false
+    );
+    insert(r);
+    System.out.println("[L3] " + r);
+end
+
+rule "L3: DNS spor je posledica gateway problema"
+    salience 80
+when
+    $dns : Hypothesis(name == "dns_server_unreachable")
+    Hypothesis(name == "gateway_misconfigured")
+    NetworkAlert(type == AlertType.DNS_SLOW)
+then
+    retract($dns);
+    Resolution r = new Resolution(
+        "DNS spor je posledica gateway problema - resiti samo gateway, DNS ce automatski raditi",
+        true);
+    insert(r);
+    System.out.println("[L3] " + r);
+end
+
+rule "L3: WiFi interferencija - slab signal uz packet loss"
+    salience 80
+when
+    Hypothesis(name == "wifi_interference_or_driver")
+    NetworkAlert(type == AlertType.PACKET_LOSS_WARNING || type == AlertType.PACKET_LOSS_HIGH)
+    NetworkTest(name == "wifi_signal_strength_low", success == true)
+then
+    Resolution r = new Resolution(
+        "WiFi interferencija - slab signal uz packet loss, promeni WiFi kanal ili predji blize routeru",
+        true);
+    insert(r);
+    System.out.println("[L3] " + r);
+end
+
+rule "L3: sekvencijalno resavanje - adapter pa DHCP pa DNS"
+    salience 80
+when
+    Hypothesis(name == "wifi_adapter_disabled")
+    Hypothesis(name == "dns_server_unreachable")
+then
+    Resolution r = new Resolution(
+        "Sekvencijalno resavanje: 1) ukljuci WiFi adapter, 2) sacekaj DHCP dodelu IP-a, 3) ponovo testiraj DNS",
+        true);
+    insert(r);
+    System.out.println("[L3] " + r);
+end
+
+rule "L3: ISP outage potvrdjen - prekini dijagnostiku"
+    salience 80
+when
+    Hypothesis(name == "isp_outage")
+    NetworkAlert(type == AlertType.PACKET_LOSS_CRITICAL)
+then
+    Resolution r = new Resolution(
+        "ISP outage potvrdjen template alarmom - prekini dalju dijagnostiku, cekaj ISP",
+        true);
+    insert(r);
+    insert(new SkipFurtherTesting(true));
+    System.out.println("[L3] " + r);
+end
+
+rule "L3: ISP bandwidth limit iz tri nezavisna izvora"
+    salience 80
+when
+    Hypothesis(name == "isp_bandwidth_limitation")
+    NetworkAlert(type == AlertType.PACKET_LOSS_HIGH)
+    NetworkAlert(type == AlertType.LATENCY_HIGH)
+    NetworkAlert(type == AlertType.BANDWIDTH_SATURATED)
+then
+    Resolution r = new Resolution(
+        "ISP bandwidth limit potvrdjen iz tri nezavisna izvora (hipoteza + 3 alarma) - kontaktiraj ISP za upgrade paketa",
+        true);
+    insert(r);
+    System.out.println("[L3] " + r);
+end
+
+rule "L3: kriticni packet loss aktivan duze od 10 minuta"
+    salience 80
+when
+    NetworkAlert(type == AlertType.PACKET_LOSS_CRITICAL, $t : timestamp)
+    not Resolution(finalDecision == true)
+    eval(System.currentTimeMillis() - $t > 600000)
+then
+    Resolution r = new Resolution(
+        "Kriticni packet loss alarm aktivan duze od 10 minuta - automatska eskalacija na visi nivo podrske",
+        true);
+    insert(r);
+    System.out.println("[L3] " + r);
+end
+
+// ============================================================
+// NIVO 3 - BEZBEDNOSNE PRETNJE (iz security template alarma)
+// ============================================================
+
+rule "L3-sec: brute force napad - kriticno mnogo neuspesnih logina"
+    salience 80
+when
+    NetworkAlert(type == AlertType.FAILED_LOGINS_CRITICAL)
+then
+    Resolution r = new Resolution(
+        "Moguc brute force napad - kriticno mnogo neuspesnih login pokusaja. Blokiraj IP izvor i ukljuci rate limiting",
+        true);
+    insert(r);
+    System.out.println("[L3-sec] " + r);
+end
+
+rule "L3-sec: port scan uz failed logins - koordinisan napad"
+    salience 85
+when
+    NetworkAlert(type == AlertType.PORT_SCAN_DETECTED)
+    NetworkAlert(type == AlertType.FAILED_LOGINS_WARNING || type == AlertType.FAILED_LOGINS_CRITICAL)
+then
+    Resolution r = new Resolution(
+        "Koordinisan napad - port scan uz neuspesne login pokusaje. Hitno: izoluj host, obavesti security tim",
+        true);
+    insert(r);
+    System.out.println("[L3-sec] " + r);
+end
+
+rule "L3: zasicen propusni opseg - degradacija performansi"
+    salience 80
+when
+    NetworkAlert(type == AlertType.BANDWIDTH_SATURATED)
+    not NetworkAlert(type == AlertType.PACKET_LOSS_CRITICAL)
+then
+    Resolution r = new Resolution(
+        "Propusni opseg zasicen - degradacija performansi bez gubitka paketa. Identifikuj top potrosace bandwidth-a (QoS, traffic shaping)",
+        false);
+    insert(r);
+    System.out.println("[L3] " + r);
+end
+
+// ============================================================
+// ACCUMULATE - prosecan packet loss preko svih ping targeta
+// ============================================================
+
+rule "Accumulate: visok prosecan packet loss preko svih targeta"
     salience 70
 when
     $avgLoss : Number(doubleValue > 0.15) from accumulate(
@@ -94,6 +488,9 @@ then
     System.out.println("[ACC] " + sol);
 end
 
+// ============================================================
+// NEGACIJA - jeftino resenje pre skupljeg
+// ============================================================
 
 rule "L3-neg: izolovan DNS problem - probaj flush cache pre menjanja DNS-a"
     salience 60

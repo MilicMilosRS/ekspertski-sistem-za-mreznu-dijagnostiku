@@ -1,0 +1,30 @@
+template header
+parameter
+operator
+threshold
+factName
+warningMessage
+salience
+
+package rules;
+
+import com.ftn.sbnz.sv10.model.models.NetworkMeasurement;
+import com.ftn.sbnz.sv10.model.models.NetworkAlert;
+import com.ftn.sbnz.sv10.model.models.AlertType;
+
+template "alert_thresholds"
+
+rule "Threshold @{factName}"
+    salience @{salience}
+when
+    $m : NetworkMeasurement(parameter == "@{parameter}", value @{operator} @{threshold})
+then
+    System.out.println("[TEMPLATE] @{factName} okinuto za " + $m.getParameter() + "=" + $m.getValue());
+    NetworkAlert alert = new NetworkAlert();
+    alert.setType(AlertType.@{factName});
+    alert.setMessage("@{warningMessage}");
+    alert.setTimestamp(System.currentTimeMillis());
+    insert(alert);
+end
+
+end template

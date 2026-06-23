@@ -1,0 +1,23 @@
+package rules;
+
+import com.ftn.sbnz.sv10.model.models.ServiceWorks;
+import com.ftn.sbnz.sv10.model.models.ServiceDependsOn;
+
+// ============================================================
+// BACKWARD CHAINING
+// Pita se "da li je $service dostupan?" i kopa naniz kroz stablo
+// zavisnosti dok ne stigne do listova (direktnih ServiceWorks dokaza).
+//
+// BAZNI SLUCAJ:    postoji ServiceWorks($service) -> dostupan
+// REKURZIVNI:      nema direktnog dokaza, ali sve zavisnosti rade
+// ============================================================
+
+query "isAvailable"(String service)
+    ServiceWorks(service == $service := service)
+    or
+    (
+        not ServiceWorks(service == $service := service)
+        and ServiceDependsOn(service == $service := service, $dep : dependency)
+        and isAvailable($dep;)
+    )
+end
