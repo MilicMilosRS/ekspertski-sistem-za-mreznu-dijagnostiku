@@ -4,13 +4,11 @@ import { FormsModule } from '@angular/forms';
 import { ApiService } from './api.service';
 
 interface LeafNode { service: string; label: string; group: string; works: boolean; }
-interface Dependency { service: string; dependency: string; }
 interface BcScenario {
   id: string;
   title: string;
   goal: string;
   leaves: LeafNode[];
-  dependencies: Dependency[];
 }
 
 @Component({
@@ -51,18 +49,6 @@ export class App implements OnInit {
         { service: 'ping_gateway_uspesan', label: 'Ping gateway uspešan',      group: 'Gateway dostupan', works: true },
         { service: 'dhcp_ili_staticki_ip', label: 'DHCP radi ili statički IP', group: 'IP konfigurisan',  works: true },
         { service: 'driver_instaliran',    label: 'Driver instaliran',         group: 'IP → adapter',     works: true }
-      ],
-      dependencies: [
-        { service: 'internet_access', dependency: 'dns_radi' },
-        { service: 'internet_access', dependency: 'gateway_dostupan' },
-        { service: 'internet_access', dependency: 'ip_konfigurisan' },
-        { service: 'dns_radi',         dependency: 'dns_server_dostupan' },
-        { service: 'dns_radi',         dependency: 'dns_cache_validan' },
-        { service: 'gateway_dostupan', dependency: 'ping_gateway_uspesan' },
-        { service: 'ip_konfigurisan',  dependency: 'dhcp_ili_staticki_ip' },
-        { service: 'ip_konfigurisan',  dependency: 'adapter_vidljiv' },
-        { service: 'adapter_vidljiv',  dependency: 'adapter_ukljucen' },
-        { service: 'adapter_ukljucen', dependency: 'driver_instaliran' }
       ]
     },
     {
@@ -74,15 +60,6 @@ export class App implements OnInit {
         { service: 'nema_latency_alarma',     label: 'Nema latency alarma',          group: 'Niska latencija',   works: true },
         { service: 'jak_wifi_signal',         label: 'Jak WiFi signal',              group: 'Stabilan signal',   works: true },
         { service: 'nema_cestih_disconnect',  label: 'Nema čestih diskonekcija',     group: 'Stabilan signal',   works: true }
-      ],
-      dependencies: [
-        { service: 'stabilna_konekcija', dependency: 'nizak_packet_loss' },
-        { service: 'stabilna_konekcija', dependency: 'niska_latencija' },
-        { service: 'stabilna_konekcija', dependency: 'stabilan_signal' },
-        { service: 'nizak_packet_loss',  dependency: 'nema_packet_loss_alarma' },
-        { service: 'niska_latencija',    dependency: 'nema_latency_alarma' },
-        { service: 'stabilan_signal',    dependency: 'jak_wifi_signal' },
-        { service: 'stabilan_signal',    dependency: 'nema_cestih_disconnect' }
       ]
     },
     {
@@ -94,15 +71,6 @@ export class App implements OnInit {
         { service: 'nema_port_scan',    label: 'Nema port scan pokušaja',     group: 'Nema upada',       works: true },
         { service: 'nema_brute_force',  label: 'Nema brute force pokušaja',   group: 'Nema upada',       works: true },
         { service: 'wpa2_ili_jaca',     label: 'WPA2 ili jača enkripcija',    group: 'Enkripcija',       works: true }
-      ],
-      dependencies: [
-        { service: 'sigurna_mreza',  dependency: 'firewall_aktivan' },
-        { service: 'sigurna_mreza',  dependency: 'nema_upada' },
-        { service: 'sigurna_mreza',  dependency: 'enkripcija' },
-        { service: 'firewall_aktivan', dependency: 'firewall_ukljucen' },
-        { service: 'nema_upada',       dependency: 'nema_port_scan' },
-        { service: 'nema_upada',       dependency: 'nema_brute_force' },
-        { service: 'enkripcija',       dependency: 'wpa2_ili_jaca' }
       ]
     }
   ];
@@ -195,7 +163,7 @@ export class App implements OnInit {
     this.bcError = ''; this.bcResult = null; this.bcLoading = true;
     const sc = this.scenario;
     const works = sc.leaves.filter(l => l.works).map(l => ({ service: l.service }));
-    const request = { target: sc.goal, works, dependencies: sc.dependencies };
+    const request = { target: sc.goal, works };
 
     this.api.checkAvailability(request).subscribe({
       next: (r) => { this.bcResult = r; this.bcLoading = false; },

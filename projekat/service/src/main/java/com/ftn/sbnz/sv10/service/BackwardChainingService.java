@@ -15,8 +15,11 @@ import com.ftn.sbnz.sv10.model.models.ServiceDependsOn;
 import com.ftn.sbnz.sv10.model.models.ServiceWorks;
 
 /**
- * Backward chaining preko isAvailable query-ja. Pita "da li je cilj dostupan",
- * i ako nije - identifikuje koji konkretno listovi stabla zavisnosti nedostaju.
+ * Backward chaining preko isAvailable query-ja.
+ *
+ * Topologija (ServiceDependsOn) NIJE ulaz - ona je staticko znanje koje
+ * topology.drl ubacuje pri startu sesije. Korisnik salje samo cilj i koje
+ * cinjenice (ServiceWorks) rade.
  */
 @Service
 public class BackwardChainingService {
@@ -24,24 +27,31 @@ public class BackwardChainingService {
     @Autowired
     private KieBase kieBase;
 
-    public AvailabilityResult checkAvailability(String target,
-                                                List<ServiceWorks> works,
-                                                List<ServiceDependsOn> dependencies) {
+    public AvailabilityResult checkAvailability(String target, List<ServiceWorks> works) {
         KieSession ks = kieBase.newKieSession();
         try {
+            // dinamicki dokazi koje korisnik salje
             works.forEach(ks::insert);
-            dependencies.forEach(ks::insert);
+
+            // okini topology.drl da ubaci staticko znanje o zavisnostima
+            ks.fireAllRules();
 
             // glavni upit: da li je cilj dostupan
             QueryResults results = ks.getQueryResults("isAvailable", target);
             boolean available = results.size() > 0;
 
-            // dodatno: nadji koji su tacno listovi slomljeni (za objasnjenje)
+            // procitaj topologiju iz sesije (ubacio je topology.drl) da nadjemo
+            // koji su tacno listovi slomljeni - samo za prikaz na frontu
+            List<ServiceDependsOn> deps = new ArrayList<>();
+            ks.getObjects().forEach(o -> {
+                if (o instanceof ServiceDependsOn) deps.add((ServiceDependsOn) o);
+            });
+
             Set<String> working = new HashSet<>();
             works.forEach(w -> working.add(w.getService()));
 
             List<String> broken = new ArrayList<>();
-            collectBrokenLeaves(target, working, dependencies, broken, new HashSet<>());
+            collectBrokenLeaves(target, working, deps, broken, new HashSet<>());
 
             AvailabilityResult res = new AvailabilityResult(target, available, broken);
             System.out.println("[BC] " + res);
@@ -52,16 +62,10 @@ public class BackwardChainingService {
         }
     }
 
-    /**
-     * Rekurzivno obilazi stablo i sakuplja listove (cvorove bez zavisnosti)
-     * koji nemaju ServiceWorks dokaz. To su tacke gde je lanac pukao.
-     */
     private void collectBrokenLeaves(String node, Set<String> working,
                                      List<ServiceDependsOn> deps, List<String> broken,
                                      Set<String> visited) {
-        if (!visited.add(node)) return;       // zastita od ciklusa
-
-        // ako cvor ima direktan dokaz da radi, ne kopamo dalje
+        if (!visited.add(node)) return;
         if (working.contains(node)) return;
 
         List<String> children = new ArrayList<>();
@@ -70,11 +74,9 @@ public class BackwardChainingService {
         }
 
         if (children.isEmpty()) {
-            // list bez ServiceWorks dokaza = slomljena tacka
             broken.add(node);
             return;
         }
-        // unutrasnji cvor - proveri svu decu
         for (String c : children) {
             collectBrokenLeaves(c, working, deps, broken, visited);
         }

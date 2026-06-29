@@ -22,7 +22,8 @@ public final class KieBaseFactory {
 
     private static final String[] DRL_FILES = {
             "/rules/diagnostics.drl",
-            "/rules/backward_chaining.drl"
+            "/rules/backward_chaining.drl",
+            "/rules/topology.drl"
     };
 
     private KieBaseFactory() {

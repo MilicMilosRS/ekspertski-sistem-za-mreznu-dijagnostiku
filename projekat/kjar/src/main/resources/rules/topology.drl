@@ -1,0 +1,53 @@
+package rules;
+
+import com.ftn.sbnz.sv10.model.models.ServiceDependsOn;
+
+// ============================================================
+// STATICKO ZNANJE - topologija mreze
+// Ova pravila se okidaju jednom pri startu (nemaju uslova osim
+// kontrolnog flega) i ubacuju sve ServiceDependsOn cinjenice koje
+// opisuju strukturu zavisnosti. Korisnik ovo NE salje - to je deo
+// baze znanja, ne dinamicki ulaz.
+//
+// Razlicita stabla (internet, stabilnost, sigurnost) koegzistiraju
+// jer imaju razlicite nazive cvorova - query radi nad svima ali se
+// ne mesaju.
+// ============================================================
+
+rule "Init topologija"
+    salience 10000
+when
+    not ServiceDependsOn()   // okini samo ako topologija jos nije ubacena
+then
+    // ----- CILJ: internet_access -----
+    insert(new ServiceDependsOn("internet_access", "dns_radi"));
+    insert(new ServiceDependsOn("internet_access", "gateway_dostupan"));
+    insert(new ServiceDependsOn("internet_access", "ip_konfigurisan"));
+    insert(new ServiceDependsOn("dns_radi", "dns_server_dostupan"));
+    insert(new ServiceDependsOn("dns_radi", "dns_cache_validan"));
+    insert(new ServiceDependsOn("gateway_dostupan", "ping_gateway_uspesan"));
+    insert(new ServiceDependsOn("ip_konfigurisan", "dhcp_ili_staticki_ip"));
+    insert(new ServiceDependsOn("ip_konfigurisan", "adapter_vidljiv"));
+    insert(new ServiceDependsOn("adapter_vidljiv", "adapter_ukljucen"));
+    insert(new ServiceDependsOn("adapter_ukljucen", "driver_instaliran"));
+
+    // ----- CILJ: stabilna_konekcija -----
+    insert(new ServiceDependsOn("stabilna_konekcija", "nizak_packet_loss"));
+    insert(new ServiceDependsOn("stabilna_konekcija", "niska_latencija"));
+    insert(new ServiceDependsOn("stabilna_konekcija", "stabilan_signal"));
+    insert(new ServiceDependsOn("nizak_packet_loss", "nema_packet_loss_alarma"));
+    insert(new ServiceDependsOn("niska_latencija", "nema_latency_alarma"));
+    insert(new ServiceDependsOn("stabilan_signal", "jak_wifi_signal"));
+    insert(new ServiceDependsOn("stabilan_signal", "nema_cestih_disconnect"));
+
+    // ----- CILJ: sigurna_mreza -----
+    insert(new ServiceDependsOn("sigurna_mreza", "firewall_aktivan"));
+    insert(new ServiceDependsOn("sigurna_mreza", "nema_upada"));
+    insert(new ServiceDependsOn("sigurna_mreza", "enkripcija"));
+    insert(new ServiceDependsOn("firewall_aktivan", "firewall_ukljucen"));
+    insert(new ServiceDependsOn("nema_upada", "nema_port_scan"));
+    insert(new ServiceDependsOn("nema_upada", "nema_brute_force"));
+    insert(new ServiceDependsOn("enkripcija", "wpa2_ili_jaca"));
+
+    System.out.println("[TOPOLOGY] Ucitano staticko znanje o zavisnostima");
+end

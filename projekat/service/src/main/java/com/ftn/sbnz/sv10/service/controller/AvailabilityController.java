@@ -19,11 +19,6 @@ public class AvailabilityController {
     @Autowired
     private BackwardChainingService backwardChainingService;
 
-    /**
-     * Backward chaining provera dostupnosti. Prima cilj, listu radnih servisa
-     * (ServiceWorks) i stablo zavisnosti (ServiceDependsOn). Vraca da li je
-     * cilj dostupan i koji listovi su slomljeni ako nije.
-     */
     @PostMapping
     public ResponseEntity<BackwardChainingService.AvailabilityResult> check(
             @RequestBody AvailabilityRequest request) {
@@ -31,8 +26,7 @@ public class AvailabilityController {
         BackwardChainingService.AvailabilityResult result =
                 backwardChainingService.checkAvailability(
                         request.getTarget(),
-                        request.getWorks(),
-                        request.getDependencies());
+                        request.getWorks());
 
         return ResponseEntity.ok(result);
     }
