@@ -32,14 +32,16 @@ public class BackwardChainingService {
             works.forEach(ks::insert);
             dependencies.forEach(ks::insert);
 
+            // glavni upit: da li je cilj dostupan
             QueryResults results = ks.getQueryResults("isAvailable", target);
             boolean available = results.size() > 0;
 
+            // dodatno: nadji koji su tacno listovi slomljeni (za objasnjenje)
             Set<String> working = new HashSet<>();
             works.forEach(w -> working.add(w.getService()));
 
             List<String> broken = new ArrayList<>();
-            findBrokenLeaves(target, working, dependencies, broken, new HashSet<>());
+            collectBrokenLeaves(target, working, dependencies, broken, new HashSet<>());
 
             AvailabilityResult res = new AvailabilityResult(target, available, broken);
             System.out.println("[BC] " + res);
@@ -50,11 +52,16 @@ public class BackwardChainingService {
         }
     }
 
-    // Rekurzivno trazi listove koji nemaju ServiceWorks dokaz.
-    private void findBrokenLeaves(String node, Set<String> working,
-                                  List<ServiceDependsOn> deps, List<String> broken,
-                                  Set<String> visited) {
-        if (!visited.add(node)) return;
+    /**
+     * Rekurzivno obilazi stablo i sakuplja listove (cvorove bez zavisnosti)
+     * koji nemaju ServiceWorks dokaz. To su tacke gde je lanac pukao.
+     */
+    private void collectBrokenLeaves(String node, Set<String> working,
+                                     List<ServiceDependsOn> deps, List<String> broken,
+                                     Set<String> visited) {
+        if (!visited.add(node)) return;       // zastita od ciklusa
+
+        // ako cvor ima direktan dokaz da radi, ne kopamo dalje
         if (working.contains(node)) return;
 
         List<String> children = new ArrayList<>();
@@ -63,11 +70,13 @@ public class BackwardChainingService {
         }
 
         if (children.isEmpty()) {
-            broken.add(node);   // list bez dokaza = slomljen
+            // list bez ServiceWorks dokaza = slomljena tacka
+            broken.add(node);
             return;
         }
+        // unutrasnji cvor - proveri svu decu
         for (String c : children) {
-            findBrokenLeaves(c, working, deps, broken, visited);
+            collectBrokenLeaves(c, working, deps, broken, visited);
         }
     }
 

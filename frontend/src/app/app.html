@@ -4,125 +4,174 @@
 
   <div class="error" *ngIf="error">{{ error }}</div>
 
-  <div class="card">
-    <div class="card-head">
-      <h2>1. Opis problema</h2>
-      <button class="btn-ghost" (click)="loadExample()">Učitaj primer</button>
-    </div>
-
-    <div class="row">
-      <label>
-        Simptom
-        <select [(ngModel)]="symptom">
-          <option value="">-- izaberi --</option>
-          <option *ngFor="let s of symptoms" [value]="s">{{ s }}</option>
-        </select>
-      </label>
-
-      <label>
-        Uređaj
-        <select [(ngModel)]="deviceType">
-          <option value="">-- izaberi --</option>
-          <option *ngFor="let d of deviceTypes" [value]="d">{{ d }}</option>
-        </select>
-      </label>
-
-      <label>
-        Konekcija
-        <select [(ngModel)]="connectionType">
-          <option value="">-- izaberi --</option>
-          <option *ngFor="let c of connectionTypes" [value]="c">{{ c }}</option>
-        </select>
-      </label>
-    </div>
+  <div class="tabs">
+    <button [class.active]="tab === 'diagnostics'" (click)="tab = 'diagnostics'">Dijagnostika</button>
+    <button [class.active]="tab === 'bc'" (click)="tab = 'bc'">Provera dostupnosti (backward chaining)</button>
   </div>
 
-  <div class="card">
-    <div class="card-head">
-      <h2>2. Rezultati testova</h2>
-      <button class="btn-ghost" (click)="addTest()">+ dodaj test</button>
-    </div>
-    <p class="hint">Izaberi test koji je sproveden i da li je prošao.</p>
-    <div class="line" *ngFor="let t of tests; let i = index">
-      <select [(ngModel)]="t.name" class="grow">
-        <option *ngFor="let at of availableTests" [value]="at.name">{{ at.label }}</option>
-      </select>
-      <select [(ngModel)]="t.success" class="result-sel">
-        <option [ngValue]="true">prošao</option>
-        <option [ngValue]="false">pao</option>
-      </select>
-      <button class="btn-x" (click)="removeTest(i)">×</button>
-    </div>
-    <p class="empty" *ngIf="tests.length === 0">Nema dodatih testova</p>
-  </div>
-
-  <div class="card">
-    <div class="card-head">
-      <h2>3. Merenja</h2>
-      <button class="btn-ghost" (click)="addMeasurement()">+ dodaj merenje</button>
-    </div>
-    <p class="hint">Sirova merenja iz monitoringa — sistem ih pretvara u alarme prema pragovima.</p>
-    <div class="line" *ngFor="let m of measurements; let i = index">
-      <select [(ngModel)]="m.parameter" class="grow">
-        <option *ngFor="let am of availableMeasurements" [value]="am.parameter">{{ am.label }}</option>
-      </select>
-      <input type="number" [(ngModel)]="m.value" class="val" />
-      <span class="unit">{{ unitFor(m.parameter) }}</span>
-      <button class="btn-x" (click)="removeMeasurement(i)">×</button>
-    </div>
-    <p class="empty" *ngIf="measurements.length === 0">Nema dodatih merenja</p>
-  </div>
-
-  <div class="card">
-    <div class="card-head">
-      <h2>4. Ping testovi</h2>
-      <button class="btn-ghost" (click)="addPing()">+ dodaj ping</button>
-    </div>
-    <p class="hint">Sistem računa prosečan packet loss preko svih targeta (accumulate).</p>
-    <div class="line" *ngFor="let p of pings; let i = index">
-      <input placeholder="target (npr. 8.8.8.8)" [(ngModel)]="p.target" class="grow" />
-      <input type="number" [(ngModel)]="p.attempts" class="val" title="pokušaja" />
-      <span class="unit">poslato</span>
-      <input type="number" [(ngModel)]="p.successful" class="val" title="uspešnih" />
-      <span class="unit">uspelo</span>
-      <button class="btn-x" (click)="removePing(i)">×</button>
-    </div>
-    <p class="empty" *ngIf="pings.length === 0">Nema ping testova</p>
-  </div>
-
-  <button class="btn-primary" (click)="diagnose()" [disabled]="loading">
-    {{ loading ? 'Dijagnostika u toku...' : 'Pokreni dijagnostiku' }}
-  </button>
-
-  <div class="card report" *ngIf="report">
-    <h2>Rezultat dijagnostike</h2>
-
-    <div class="section" *ngIf="report.alerts?.length">
-      <h3>Alarmi generisani iz merenja ({{ report.alerts.length }})</h3>
-      <div class="tag alert" *ngFor="let a of report.alerts">
-        {{ a.type }} — {{ a.message }}
+  <!-- ============ TAB: DIJAGNOSTIKA ============ -->
+  <div *ngIf="tab === 'diagnostics'">
+    <div class="card">
+      <div class="card-head">
+        <h2>1. Opis problema</h2>
+        <button class="btn-ghost" (click)="loadExample()">Učitaj primer</button>
+      </div>
+      <div class="row">
+        <label>Simptom
+          <select [(ngModel)]="symptom">
+            <option value="">-- izaberi --</option>
+            <option *ngFor="let s of symptoms" [value]="s">{{ s }}</option>
+          </select>
+        </label>
+        <label>Uređaj
+          <select [(ngModel)]="deviceType">
+            <option value="">-- izaberi --</option>
+            <option *ngFor="let d of deviceTypes" [value]="d">{{ d }}</option>
+          </select>
+        </label>
+        <label>Konekcija
+          <select [(ngModel)]="connectionType">
+            <option value="">-- izaberi --</option>
+            <option *ngFor="let c of connectionTypes" [value]="c">{{ c }}</option>
+          </select>
+        </label>
       </div>
     </div>
 
-    <div class="section" *ngIf="report.hypotheses?.length">
-      <h3>Hipoteze ({{ report.hypotheses.length }})</h3>
-      <div class="tag hyp" *ngFor="let h of report.hypotheses">{{ h.name }}</div>
+    <div class="card">
+      <div class="card-head">
+        <h2>2. Rezultati testova</h2>
+        <button class="btn-ghost" (click)="addTest()">+ dodaj test</button>
+      </div>
+      <p class="hint">Izaberi test koji je sproveden i da li je prošao.</p>
+      <div class="line" *ngFor="let t of tests; let i = index">
+        <select [(ngModel)]="t.name" class="grow">
+          <option *ngFor="let at of availableTests" [value]="at.name">{{ at.label }}</option>
+        </select>
+        <select [(ngModel)]="t.success" class="result-sel">
+          <option [ngValue]="true">prošao</option>
+          <option [ngValue]="false">pao</option>
+        </select>
+        <button class="btn-x" (click)="removeTest(i)">×</button>
+      </div>
+      <p class="empty" *ngIf="tests.length === 0">Nema dodatih testova</p>
     </div>
 
-    <div class="section" *ngIf="report.solutions?.length">
-      <h3>Preporučena rešenja ({{ report.solutions.length }})</h3>
-      <ol>
-        <li *ngFor="let s of report.solutions">{{ s.description }}</li>
-      </ol>
+    <div class="card">
+      <div class="card-head">
+        <h2>3. Merenja</h2>
+        <button class="btn-ghost" (click)="addMeasurement()">+ dodaj merenje</button>
+      </div>
+      <p class="hint">Sirova merenja iz monitoringa — sistem ih pretvara u alarme prema pragovima.</p>
+      <div class="line" *ngFor="let m of measurements; let i = index">
+        <select [(ngModel)]="m.parameter" class="grow">
+          <option *ngFor="let am of availableMeasurements" [value]="am.parameter">{{ am.label }}</option>
+        </select>
+        <input type="number" [(ngModel)]="m.value" class="val" />
+        <span class="unit">{{ unitFor(m.parameter) }}</span>
+        <button class="btn-x" (click)="removeMeasurement(i)">×</button>
+      </div>
+      <p class="empty" *ngIf="measurements.length === 0">Nema dodatih merenja</p>
     </div>
 
-    <div class="section" *ngIf="report.resolutions?.length">
-      <h3>Rezolucije ({{ report.resolutions.length }})</h3>
-      <div class="tag res" *ngFor="let r of report.resolutions">{{ r.description }}</div>
+    <div class="card">
+      <div class="card-head">
+        <h2>4. Ping testovi</h2>
+        <button class="btn-ghost" (click)="addPing()">+ dodaj ping</button>
+      </div>
+      <p class="hint">Sistem računa prosečan packet loss preko svih targeta (accumulate).</p>
+      <div class="line" *ngFor="let p of pings; let i = index">
+        <input placeholder="target (npr. 8.8.8.8)" [(ngModel)]="p.target" class="grow" />
+        <input type="number" [(ngModel)]="p.attempts" class="val" title="poslato" />
+        <span class="unit">poslato</span>
+        <input type="number" [(ngModel)]="p.successful" class="val" title="uspelo" />
+        <span class="unit">uspelo</span>
+        <button class="btn-x" (click)="removePing(i)">×</button>
+      </div>
+      <p class="empty" *ngIf="pings.length === 0">Nema ping testova</p>
     </div>
 
-    <p class="empty" *ngIf="!report.hypotheses?.length && !report.solutions?.length && !report.resolutions?.length">
-      Nijedno pravilo nije okinulo za ove ulaze. Probaj da dodaš više testova ili merenja.
-    </p>
+    <button class="btn-primary" (click)="diagnose()" [disabled]="loading">
+      {{ loading ? 'Dijagnostika u toku...' : 'Pokreni dijagnostiku' }}
+    </button>
+
+    <div class="card report" *ngIf="report">
+      <h2>Rezultat dijagnostike</h2>
+      <div class="section" *ngIf="report.alerts?.length">
+        <h3>Alarmi generisani iz merenja ({{ report.alerts.length }})</h3>
+        <div class="tag alert" *ngFor="let a of report.alerts">{{ a.type }} — {{ a.message }}</div>
+      </div>
+      <div class="section" *ngIf="report.hypotheses?.length">
+        <h3>Hipoteze ({{ report.hypotheses.length }})</h3>
+        <div class="tag hyp" *ngFor="let h of report.hypotheses">{{ h.name }}</div>
+      </div>
+      <div class="section" *ngIf="report.solutions?.length">
+        <h3>Preporučena rešenja ({{ report.solutions.length }})</h3>
+        <ol><li *ngFor="let s of report.solutions">{{ s.description }}</li></ol>
+      </div>
+      <div class="section" *ngIf="report.resolutions?.length">
+        <h3>Rezolucije ({{ report.resolutions.length }})</h3>
+        <div class="tag res" *ngFor="let r of report.resolutions">{{ r.description }}</div>
+      </div>
+      <p class="empty" *ngIf="!report.hypotheses?.length && !report.solutions?.length && !report.resolutions?.length">
+        Nijedno pravilo nije okinulo za ove ulaze. Probaj da dodaš više testova ili merenja.
+      </p>
+    </div>
+  </div>
+
+  <!-- ============ TAB: BACKWARD CHAINING ============ -->
+  <div *ngIf="tab === 'bc'">
+    <div class="card">
+      <div class="card-head"><h2>Backward chaining — provera cilja</h2></div>
+      <p class="hint">
+        Izaberi cilj koji proveravamo. Sistem polazi od cilja i rekurzivno ga grana
+        na preduslove sve do osnovnih činjenica. Cilj je ispunjen samo ako
+        <strong>sve</strong> grane vode do činjenica koje rade.
+      </p>
+
+      <label style="margin-bottom:14px;">
+        Cilj
+        <select [(ngModel)]="selectedScenarioId" (ngModelChange)="onScenarioChange()">
+          <option *ngFor="let s of scenarios" [value]="s.id">{{ s.title }}</option>
+        </select>
+      </label>
+
+      <p class="hint" style="margin-top:14px;">
+        Osnovne činjenice grupisane po preduslovu cilja. Otkači bilo koju da vidiš
+        kako pad jedne činjenice ruši ceo preduslov, a time i cilj.
+      </p>
+
+      <div class="leaf-grid">
+        <div class="leaf-group" *ngFor="let g of groupedLeaves">
+          <div class="leaf-group-title">{{ g.group }}</div>
+          <label class="chk leaf-item" *ngFor="let l of g.items">
+            <input type="checkbox" [(ngModel)]="l.works" />
+            <span [class.broken]="!l.works">{{ l.label }}</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="bc-presets">
+        <button class="btn-ghost" (click)="bcAllWorking()">Sve radi</button>
+        <button class="btn-ghost" (click)="bcBreakFirst()">Pokvari prvu</button>
+      </div>
+    </div>
+
+    <button class="btn-primary" (click)="checkAvailability()" [disabled]="bcLoading">
+      {{ bcLoading ? 'Proveravam...' : 'Proveri cilj' }}
+    </button>
+
+    <div class="error" *ngIf="bcError">{{ bcError }}</div>
+
+    <div class="card report" *ngIf="bcResult">
+      <h2>Rezultat</h2>
+      <div class="bc-verdict" [class.ok]="bcResult.available" [class.bad]="!bcResult.available">
+        {{ bcResult.available ? '✓ Cilj je ISPUNJEN' : '✗ Cilj NIJE ispunjen' }}
+      </div>
+      <div class="section" *ngIf="!bcResult.available && bcResult.brokenLeaves?.length">
+        <h3>Lanac je pukao na sledećim činjenicama:</h3>
+        <div class="tag alert" *ngFor="let b of bcResult.brokenLeaves">{{ leafLabel(b) }}</div>
+      </div>
+    </div>
   </div>
 </div>

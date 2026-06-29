@@ -143,3 +143,102 @@ ol li { margin-bottom: 6px; }
   font-size: 13px;
   white-space: nowrap;
 }
+
+/* tabovi */
+.tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  border-bottom: 2px solid #e5e7eb;
+}
+.tabs button {
+  background: none;
+  border: none;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #6b7280;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+}
+.tabs button.active {
+  color: #4f46e5;
+  border-bottom-color: #4f46e5;
+}
+
+/* backward chaining */
+.tree-info {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-size: 12px;
+  color: #4b5563;
+  line-height: 1.5;
+}
+.leaf { margin-bottom: 6px; }
+.leaf code {
+  background: #f3f4f6;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #6b7280;
+  margin-left: 6px;
+}
+.bc-presets {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+}
+.bc-verdict {
+  padding: 14px;
+  border-radius: 8px;
+  font-size: 17px;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 16px;
+}
+.bc-verdict.ok { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
+.bc-verdict.bad { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+
+.broken { text-decoration: line-through; color: #dc2626; }
+.grp {
+  font-size: 11px;
+  color: #9ca3af;
+  margin-left: auto;
+  padding-left: 12px;
+}
+.leaf .chk { display: flex; align-items: center; width: 100%; }
+.tree-info { font-family: monospace; line-height: 1.7; }
+
+/* grupisani listovi (backward chaining) */
+.leaf-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 8px;
+}
+@media (max-width: 600px) { .leaf-grid { grid-template-columns: 1fr; } }
+
+.leaf-group {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 12px;
+  background: #fafafa;
+}
+.leaf-group-title {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #4f46e5;
+  margin-bottom: 8px;
+}
+.leaf-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 14px;
+}

@@ -5,11 +5,17 @@ import com.ftn.sbnz.sv10.model.models.ServiceDependsOn;
 
 // ============================================================
 // BACKWARD CHAINING
-// Pita se "da li je $service dostupan?" i kopa naniz kroz stablo
-// zavisnosti dok ne stigne do listova (direktnih ServiceWorks dokaza).
+// Pita se "da li je $service dostupan?".
 //
-// BAZNI SLUCAJ:    postoji ServiceWorks($service) -> dostupan
-// REKURZIVNI:      nema direktnog dokaza, ali sve zavisnosti rade
+// BAZNI SLUCAJ:    postoji direktan dokaz ServiceWorks($service)
+//
+// REKURZIVNI:      nema direktnog dokaza, ali servis IMA zavisnosti
+//                  I NIJEDNA zavisnost nije nedostupna
+//                  (tj. SVE zavisnosti su dostupne)
+//
+// Kljucna razlika u odnosu na naivnu verziju: koristimo negaciju
+// "ne postoji zavisnost koja nije dostupna" da bismo zahtevali da
+// SVE zavisnosti rade, a ne samo jedna.
 // ============================================================
 
 query "isAvailable"(String service)
@@ -17,7 +23,10 @@ query "isAvailable"(String service)
     or
     (
         not ServiceWorks(service == $service := service)
-        and ServiceDependsOn(service == $service := service, $dep : dependency)
-        and isAvailable($dep;)
+        and exists ServiceDependsOn(service == $service := service)
+        and not (
+            ServiceDependsOn(service == $service := service, $dep : dependency)
+            and not isAvailable($dep;)
+        )
     )
 end
