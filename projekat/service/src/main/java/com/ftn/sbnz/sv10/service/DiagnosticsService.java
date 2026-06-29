@@ -24,11 +24,6 @@ public class DiagnosticsService {
     @Autowired
     private KieBase kieBase;
 
-    /**
-     * Glavna dijagnostika. Prima sirova merenja (measurements) koja
-     * template pravila u istoj sesiji pretvaraju u NetworkAlert cinjenice,
-     * koje onda glavna pravila koriste za dijagnozu.
-     */
     public DiagnosisReport diagnose(NetworkProblem problem,
                                     List<NetworkTest> tests,
                                     List<NetworkMeasurement> measurements,

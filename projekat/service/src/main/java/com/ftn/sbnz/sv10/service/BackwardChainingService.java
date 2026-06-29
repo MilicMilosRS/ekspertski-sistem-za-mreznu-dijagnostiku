@@ -14,13 +14,6 @@ import org.springframework.stereotype.Service;
 import com.ftn.sbnz.sv10.model.models.ServiceDependsOn;
 import com.ftn.sbnz.sv10.model.models.ServiceWorks;
 
-/**
- * Backward chaining preko isAvailable query-ja.
- *
- * Topologija (ServiceDependsOn) NIJE ulaz - ona je staticko znanje koje
- * topology.drl ubacuje pri startu sesije. Korisnik salje samo cilj i koje
- * cinjenice (ServiceWorks) rade.
- */
 @Service
 public class BackwardChainingService {
 

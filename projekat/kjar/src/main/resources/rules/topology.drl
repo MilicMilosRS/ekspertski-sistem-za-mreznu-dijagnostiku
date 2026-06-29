@@ -2,18 +2,6 @@ package rules;
 
 import com.ftn.sbnz.sv10.model.models.ServiceDependsOn;
 
-// ============================================================
-// STATICKO ZNANJE - topologija mreze
-// Ova pravila se okidaju jednom pri startu (nemaju uslova osim
-// kontrolnog flega) i ubacuju sve ServiceDependsOn cinjenice koje
-// opisuju strukturu zavisnosti. Korisnik ovo NE salje - to je deo
-// baze znanja, ne dinamicki ulaz.
-//
-// Razlicita stabla (internet, stabilnost, sigurnost) koegzistiraju
-// jer imaju razlicite nazive cvorova - query radi nad svima ali se
-// ne mesaju.
-// ============================================================
-
 rule "Init topologija"
     salience 10000
 when

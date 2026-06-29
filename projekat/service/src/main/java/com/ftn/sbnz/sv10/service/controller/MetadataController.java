@@ -16,12 +16,6 @@ import com.ftn.sbnz.sv10.model.models.ConnectionType;
 import com.ftn.sbnz.sv10.model.models.DeviceType;
 import com.ftn.sbnz.sv10.model.models.Symptom;
 
-/**
- * Vraca sve sto frontend treba da popuni dropdown menije:
- * enum vrednosti, dostupne testove (sa opisima) i parametre merenja.
- * Sve je definisano ovde tako da korisnik nikad ne mora da pogadja
- * imena testova ili parametara.
- */
 @RestController
 @RequestMapping("/api/metadata")
 @CrossOrigin(origins = "*")

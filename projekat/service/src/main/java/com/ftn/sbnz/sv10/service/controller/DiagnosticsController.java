@@ -19,11 +19,6 @@ public class DiagnosticsController {
     @Autowired
     private DiagnosticsService diagnosticsService;
 
-    /**
-     * Glavna dijagnostika. Prima problem korisnika, rezultate testova,
-     * sirova merenja (koja template pretvara u alarme) i ping rezultate.
-     * Vraca izvestaj sa hipotezama, alarmima, resenjima i rezolucijama.
-     */
     @PostMapping
     public ResponseEntity<DiagnosticsService.DiagnosisReport> diagnose(
             @RequestBody DiagnosisRequest request) {

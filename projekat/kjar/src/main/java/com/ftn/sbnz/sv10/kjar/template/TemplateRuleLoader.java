@@ -5,14 +5,6 @@ import java.io.InputStream;
 import org.drools.decisiontable.ExternalSpreadsheetCompiler;
 import com.ftn.sbnz.sv10.kjar.KjarApplication;
 
-/**
- * Kompajluje .drt template + .xls tabelu pragova u gotov DRL string.
- * ExternalSpreadsheetCompiler cita Excel direktno (bez rucnog parsiranja)
- * i puni placeholdere @{...} u template-u vrednostima iz celija.
- *
- * Parametri (startRow=2, startCol=1): podaci pocinju od 2. reda, 1. kolone
- * (1-indeksirano), tj. red 1 je header.
- */
 public final class TemplateRuleLoader {
 
     private TemplateRuleLoader() {
